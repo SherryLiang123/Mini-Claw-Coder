@@ -1,0 +1,194 @@
+{
+  "cases": [
+    {
+      "name": "patch_and_verify_smoke",
+      "task": "Change the greeting from old to new and verify the file content.",
+      "setup_files": {
+        "app.py": "def greet():\n    return 'old'\n"
+      },
+      "scripted_actions": [
+        {
+          "thought": "Patch the greeting and bind a verification command.",
+          "action": {
+            "tool": "apply_patch",
+            "args": {
+              "operations": [
+                {
+                  "op": "replace",
+                  "path": "app.py",
+                  "old": "return 'old'",
+                  "new": "return 'new'"
+                }
+              ],
+              "verify": [
+                "python -c \"import app; raise SystemExit(0 if app.greet() == 'new' else 1)\""
+              ]
+            }
+          },
+          "final": null
+        },
+        {
+          "thought": "Patch and verification succeeded.",
+          "action": null,
+          "final": "Updated greeting and verified behavior."
+        }
+      ],
+      "verification_commands": [
+        "python -c \"import app; raise SystemExit(0 if app.greet() == 'new' else 1)\""
+      ]
+    },
+    {
+      "name": "failure_attribution_smoke",
+      "expected_success": false,
+      "task": "Use an invalid tool so the runtime records a tool-use failure.",
+      "setup_files": {
+        "README.txt": "fixture\n"
+      },
+      "scripted_actions": [
+        {
+          "thought": "Intentionally call an invalid tool.",
+          "action": {
+            "tool": "read_file",
+            "args": {
+              "path": "README.txt"
+            }
+          },
+          "final": null
+        }
+      ],
+      "verification_commands": []
+    },
+    {
+      "name": "tool_output_lookup_smoke",
+      "task": "Inspect a long tool result and fetch the focused excerpt through runtime lookup.",
+      "setup_files": {},
+      "scripted_actions": [
+        {
+          "thought": "Generate a long shell output first.",
+          "action": {
+            "tool": "shell",
+            "args": {
+              "command": "python -c \"print('A'*2400); print('SPECIAL_LOOKUP_TARGET')\""
+            }
+          },
+          "final": null
+        },
+        {
+          "thought": "Use the runtime lookup tool to retrieve the focused excerpt.",
+          "action": {
+            "tool": "tool_output_lookup",
+            "args": {
+              "ref": "1",
+              "query": "SPECIAL_LOOKUP_TARGET",
+              "max_chars": 240
+            }
+          },
+          "final": null
+        },
+        {
+          "thought": "Lookup succeeded.",
+          "action": null,
+          "final": "Recovered the relevant excerpt from the stored tool output."
+        }
+      ],
+      "verification_commands": []
+    },
+    {
+      "name": "lookup_policy_smoke",
+      "task": "Do not repeat a shell inspection after truncation; use runtime lookup instead.",
+      "setup_files": {},
+      "scripted_actions": [
+        {
+          "thought": "Generate a long shell output first.",
+          "action": {
+            "tool": "shell",
+            "args": {
+              "command": "python -c \"print('A'*2400); print('SPECIAL_LOOKUP_TARGET')\""
+            }
+          },
+          "final": null
+        },
+        {
+          "thought": "Incorrectly retry the same shell command.",
+          "action": {
+            "tool": "shell",
+            "args": {
+              "command": "python -c \"print('A'*2400); print('SPECIAL_LOOKUP_TARGET')\""
+            }
+          },
+          "final": null
+        },
+        {
+          "thought": "Follow the runtime guidance and use lookup.",
+          "action": {
+            "tool": "tool_output_lookup",
+            "args": {
+              "ref": "latest_truncated",
+              "focus": "auto",
+              "max_chars": 240
+            }
+          },
+          "final": null
+        },
+        {
+          "thought": "Lookup succeeded.",
+          "action": null,
+          "final": "Recovered the relevant excerpt after the runtime blocked the repeated shell inspection."
+        }
+      ],
+      "verification_commands": []
+    },
+    {
+      "name": "multi_hop_lookup_smoke",
+      "task": "Use auto lookup with path intent first, then refine to the import error hint.",
+      "setup_files": {},
+      "scripted_actions": [
+        {
+          "thought": "Generate a long shell output with both path and error evidence.",
+          "action": {
+            "tool": "shell",
+            "args": {
+              "command": "python -c \"print('A'*2400); print('README.md'); print('Traceback (most recent call last):'); print(\\\"ModuleNotFoundError: No module named 'demo_pkg'\\\")\""
+            }
+          },
+          "final": null
+        },
+        {
+          "thought": "Inspect the path-oriented hint first.",
+          "action": {
+            "tool": "tool_output_lookup",
+            "args": {
+              "ref": "latest_truncated",
+              "focus": "auto",
+              "intent": "path",
+              "max_chars": 220
+            }
+          },
+          "final": null
+        },
+        {
+          "thought": "Refine toward the error-oriented hint.",
+          "action": {
+            "tool": "tool_output_lookup",
+            "args": {
+              "ref": "latest_truncated",
+              "focus": "auto",
+              "intent": "error",
+              "exclude_queries": [
+                "README.md"
+              ],
+              "max_chars": 220
+            }
+          },
+          "final": null
+        },
+        {
+          "thought": "Refined lookup succeeded.",
+          "action": null,
+          "final": "Recovered both the path clue and the import error from the stored shell output."
+        }
+      ],
+      "verification_commands": []
+    }
+  ]
+}
