@@ -132,7 +132,7 @@ else {
 
     $effectiveTask = @"
 Focus on the main Mini Claw-Coder repository.
-Ignore .external and pico-main unless the task explicitly asks for them.
+Ignore .external and sibling-project unless the task explicitly asks for them.
 
 User task:
 $Task

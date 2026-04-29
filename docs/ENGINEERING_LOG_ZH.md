@@ -428,9 +428,9 @@ tests/test_file_index.py
 
 设计原因：
 
-- 竞品有“预览注入 + 按需读取”的渐进式披露。
 - 我们之前只有 workspace tree，信息密度低，也缺少符号和预览。
 - FileIndex 让模型先看到候选文件、关键符号和少量预览，再通过 shell 读取完整文件，避免一开始污染上下文。
+- 这让上下文披露从“一次性塞全量仓库”改成了“先预览、再按需深读”的两阶段流程。
 
 CLI 示例：
 
@@ -480,9 +480,9 @@ python -m mini_claw skills match "inspect this repository" --include-examples
 
 设计原因：
 
-- 竞品 Skills 有调用契约和执行边界。
 - 之前我们的 skill 只是 Markdown 片段，缺少触发条件和边界。
 - Skill Contract 让 skill 从 prompt 片段升级为能力模块。
+- 这样后续才能把工具权限、路径限制和验证要求接进 guardrail。
 
 当前边界：
 
@@ -545,198 +545,7 @@ mock agent run passed
 ### 5. 这和 Skill 有什么关系？
 
 Memory 存项目事实和运行轨迹，Skill 存可复用操作流程。比如“这个项目测试命令是 X”属于 memory；“遇到 pytest import error 时按哪些步骤排查”属于 skill。后续 Failure Attribution 可以生成 skill candidate，再通过 eval 验证是否值得固化。
-## 竞品对比记录
-
-### 对比对象
-
-竞品：`xcode`，基于用户提供的信息，定位为基于 OpenAI Agents SDK 开发的 CLI Code Agent。
-
-用户提供的竞品能力包括：
-
-- Read / Edit / Write / Bash / Todo / Skills 工具系统。
-- 统一工具返回格式、长输出截断和结果回查。
-- 基于文件快照的乐观锁编辑机制。
-- L1 系统规则、L2 项目约束、L3 会话状态的分层上下文。
-- 轻量裁剪 + 结构化总结的历史压缩。
-- Compact 工具。
-- 预览注入 + 按需读取的渐进式披露。
-- Runtime Tracing。
-- 持久化任务图。
-- 多 Agent 协作。
-- 任务级 worktree 隔离。
-- Skills 机制。
-
-注意：当前没有直接拉取竞品仓库做代码级审查，因此这份对比基于用户描述和公开 Agent SDK 能力判断。
-
-### 当前结论
-
-如果按“产品完成度”和“CLI Code Agent 可用性”看，竞品目前更强。
-
-原因：
-
-- 竞品工具系统更完整。
-- 竞品已经覆盖 Todo、Compact、Skills、任务图、多 Agent、worktree 隔离等工程功能。
-- 如果竞品基于 OpenAI Agents SDK，它天然可以复用 SDK 的 handoff、tracing、guardrails 等基础设施。
-
-如果按“可靠性工程”和“可验证 Agent Runtime”看，我们已经形成差异化。
-
-我们的优势：
-
-- 最小工具集设计更清晰，行动边界更容易审计。
-- ContextPacket / ContextCompiler 让上下文构造可记录、可压缩、可比较。
-- Patch Transaction 不只是 read-before-write，还包括 snapshot、sha256、diff summary、verification binding、journal 和 rollback。
-- Failure Attribution 把失败从日志变成结构化信号。
-- Trace Replay 让 task trace 能被复盘和统计。
-- Memory 分成可注入 project memory 和可回放 task trace，避免全量历史污染上下文。
-
-面试口径：
-
-> 如果比较功能覆盖，竞品更完整；如果比较我想重点展示的方向，我的项目更偏底层可靠性。我不是要堆出最多工具，而是把 coding agent 的上下文、编辑、验证、失败和回放做成可观测、可评测、可迭代的 runtime。
-
-### 对比表
-
-| 维度 | 竞品 xcode | Mini Claw-Coder 当前状态 | 当前判断 |
-| --- | --- | --- | --- |
-| CLI 完成度 | 更像完整产品 | 当前偏框架和 runtime | 竞品强 |
-| 工具系统 | Read / Edit / Write / Bash / Todo / Skills | shell / apply_patch / tool_output_lookup 最小工具核 | 各有取舍 |
-| 上下文分层 | L1/L2/L3 + 压缩 + Compact | ContextPacket / ContextCompiler + budget report | 接近，但竞品功能更完整 |
-| 渐进披露 | 预览注入 + 按需读取 | FileIndex Preview + memory budget retrieval | 接近，后续需要记录 preview->full read 链路 |
-| 编辑安全 | 文件快照乐观锁 | Patch Transaction：hash / diff / verify / rollback | 我们更强 |
-| 工具结果治理 | 统一返回格式 + 长输出回查 | output protocol + result lookup + lookup policy | 我们开始形成 runtime 优势 |
-| Trace | Runtime tracing | RuntimeEvent + replay report | 我们更强调可复盘 |
-| Failure 分析 | 未知 | Failure Attribution 已实现 | 我们更强 |
-| Eval | 未知 | JSONL eval runner，指标仍少 | 我们有基础但不够强 |
-| Memory | 分层上下文和长期信息披露 | project memory + task trace + budget retrieval | 我们更可解释，但还不够自动 |
-| Skills | 按需加载和调用契约 | Skill Contract + relevance selection | 接近，后续要接工具 guardrail |
-| 多 Agent | 多 Agent + 任务图 + worktree | ACP-like handoff 数据结构 | 竞品强 |
-
-### 下一步追赶路线
-
-#### P0：补齐面试最容易被问到的数据
-
-目标：
-
-- 不只说“更可靠”，要拿出可复现数据。
-
-计划：
-
-- 构建 8-10 个本地 coding eval tasks。
-- 每个 task 有初始仓库、任务描述、期望测试命令、成功判定。
-- 输出成功率、工具调用次数、上下文长度、patch 行数、验证结果、失败归因分布。
-
-最小指标：
-
-```text
-success_rate
-avg_tool_calls
-avg_context_chars
-avg_patch_added_lines
-avg_patch_removed_lines
-verification_pass_rate
-failure_root_cause_distribution
-```
-
-#### P1：补齐 Todo / Task Graph
-
-原因：
-
-竞品有 Todo 和持久化任务图，这是复杂任务编排的核心。我们目前只有线性 agent loop。
-
-计划：
-
-- 新增 `TaskGraph`。
-- 节点包含 objective、status、owner_role、context_refs、verification_command。
-- 支持 pending / in_progress / blocked / done / failed。
-- Agent 每轮根据 TaskGraph 选择下一步。
-
-面试价值：
-
-> 我把复杂 coding 任务从线性对话升级为可持久化任务图，每个节点都有上下文引用和验证命令，便于中断恢复和多 agent handoff。
-
-#### P2：补齐渐进式披露
-
-原因：
-
-竞品有预览注入 + 按需读取。我们目前只有 workspace tree 和 memory retrieval。
-
-当前状态：
-
-- 已建立 `FileIndex`。
-- ContextPacket 默认注入文件摘要、符号、预览和候选路径。
-- 模型需要完整内容时仍通过 shell 读取具体文件。
-- 后续补充 trace 中 preview -> full content 的链路记录。
-
-面试价值：
-
-> 我不是把整个仓库塞给模型，而是先给文件索引和摘要，再按任务需要逐步披露文件内容，降低上下文污染。
-
-#### P3：增强 Skill 契约
-
-原因：
-
-竞品 Skills 有调用契约和执行边界。我们已经实现 Skill Contract 和相关性选择，后续要把声明式边界接到工具 guardrail。
-
-当前状态：
-
-- 每个 skill 支持 metadata：
-
-```yaml
-name:
-description:
-triggers:
-inputs:
-outputs:
-allowed_tools:
-forbidden_paths:
-verification:
-```
-
-后续计划：
-
-- 将 `allowed_tools` 接入工具调用校验。
-- 将 `forbidden_paths` 接入 patch / shell guardrail。
-- 基于 Failure Attribution 生成 skill candidate。
-
-面试价值：
-
-> Skill 不只是 prompt 片段，而是有触发条件、输入输出、工具边界和验证方式的能力模块。
-
-#### P4：任务级隔离
-
-原因：
-
-竞品有 worktree 隔离，这是复杂并行开发任务的亮点。
-
-计划：
-
-- 先不直接依赖 git worktree。
-- 实现 `workspace_copy` 隔离模式。
-- 后续支持 git worktree。
-- 每个 task node 在独立目录生成 patch。
-- Integrator 负责合并 patch。
-
-面试价值：
-
-> 多 Agent 不共享同一个工作区直接改文件，而是在任务隔离环境里生成候选 patch，再由 integrator 统一合并和验证。
-
-#### P5：Memory 写入和 Skill 进化
-
-原因：
-
-当前 memory 只支持人工写入和预算召回，还没有自动沉淀。
-
-计划：
-
-- 成功任务后提取 project memory candidate。
-- 验证通过后写入 `project_memory.md`。
-- 失败归因生成 skill candidate。
-- eval 验证 skill candidate 是否提升成功率。
-
-面试价值：
-
-> 我把自进化限制在 eval-driven improvement 上：失败不会直接改系统，而是生成候选 memory 或 skill，再通过评测验证。
-
-### 当前优先级建议
+## 当前优先级建议
 
 最应该先做：
 
@@ -828,7 +637,7 @@ tests/test_cli_workspace.py
 
 设计原因：
 
-- 竞品的亮点之一是任务级 worktree 隔离，这也是面试里很容易被追问的一环。
+- 任务级隔离是复杂任务编排里很重要的一环，也是在面试里很容易被追问的一环。
 - 我这一版先不直接依赖 `git worktree`，而是先证明三个东西已经跑通：任务图、任务隔离目录、主工作区差异比较。
 - 这样做的好处是实现轻量、测试简单、对本地环境依赖更少，也更容易讲清楚为什么需要 integrator。
 
@@ -973,7 +782,7 @@ tests/test_trace_replay.py
 
 设计原因：
 
-- 竞品有统一工具返回格式、长输出截断和结果回查，这正好对应 Coding Agent 很现实的上下文污染问题。
+- 长输出、截断和结果回查正好对应 Coding Agent 很现实的上下文污染问题。
 - 之前 `shell` 直接把长输出截断后塞进 observation，虽然能跑，但模型看不到统一结构，trace 里也缺少结果引用。
 - 我希望工具输出遵守和 patch / trace 一样的思路：当前上下文里放摘要，完整信息放存储，运行时里放引用。
 
@@ -1628,7 +1437,7 @@ signal-aware route_reasons: continue_execution=4, initial_planning=5, pending_to
 
 ## 2026-04-19：Read-before-write Guard
 
-目标：补强安全编辑机制，正面对齐竞品的“基于文件快照的乐观锁 / read-before-write”能力，避免 agent 在没读过目标文件或读后文件已漂移的情况下直接 patch。
+目标：补强安全编辑机制，引入“read-before-write”约束，避免 agent 在没读过目标文件或读后文件已漂移的情况下直接 patch。
 
 这轮实现：
 - `MemoryStore` 新增 `.mini_claw/memory/read_snapshots.jsonl`，用于记录文件读取快照。
@@ -1677,7 +1486,7 @@ signal-aware route_reasons: continue_execution=4, initial_planning=5, pending_to
 
 ## 2026-04-19：Git Worktree 任务隔离
 
-目标：把任务级隔离从 `workspace_copy` 升级为同时支持 `git-worktree`，提升项目作为真实 CLI Coding Agent 的生产感，并对齐竞品的任务级 worktree 隔离能力。
+目标：把任务级隔离从 `workspace_copy` 升级为同时支持 `git-worktree`，提升项目作为真实 CLI Coding Agent 的生产感，并增强并行任务隔离能力。
 
 这轮实现：
 - `TaskWorkspace` 新增 `mode` 字段，当前支持 `copy` 和 `git-worktree`。

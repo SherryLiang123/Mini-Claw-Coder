@@ -19,7 +19,7 @@ CORE_IGNORED_PARTS = {
 # repository inspection stays focused on the main coding workspace.
 REFERENCE_IGNORED_PARTS = {
     ".external",
-    "pico-main",
+    "sibling-project",
 }
 
 DEFAULT_DISCOVERY_IGNORED_PARTS = CORE_IGNORED_PARTS | REFERENCE_IGNORED_PARTS

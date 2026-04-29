@@ -152,8 +152,8 @@ class ContextManagerTest(unittest.TestCase):
             (workspace / "app.py").write_text("VALUE = 1\n", encoding="utf-8")
             (workspace / ".external").mkdir()
             (workspace / ".external" / "reference.py").write_text("VALUE = 2\n", encoding="utf-8")
-            (workspace / "pico-main").mkdir()
-            (workspace / "pico-main" / "alt.py").write_text("VALUE = 3\n", encoding="utf-8")
+            (workspace / "sibling-project").mkdir()
+            (workspace / "sibling-project" / "alt.py").write_text("VALUE = 3\n", encoding="utf-8")
             memory = MemoryStore(Path(directory) / ".mini_claw" / "memory")
             manager = ContextManager(
                 workspace=workspace,
@@ -169,7 +169,7 @@ class ContextManagerTest(unittest.TestCase):
 
             self.assertIn("app.py", rendered)
             self.assertNotIn(".external", rendered)
-            self.assertNotIn("pico-main", rendered)
+            self.assertNotIn("sibling-project", rendered)
 
 
 if __name__ == "__main__":

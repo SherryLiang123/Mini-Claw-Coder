@@ -49,8 +49,8 @@ class FileIndexTest(unittest.TestCase):
                 "def reference_only():\n    return False\n",
                 encoding="utf-8",
             )
-            (root / "pico-main").mkdir()
-            (root / "pico-main" / "alt.py").write_text(
+            (root / "sibling-project").mkdir()
+            (root / "sibling-project" / "alt.py").write_text(
                 "def sibling_project():\n    return False\n",
                 encoding="utf-8",
             )

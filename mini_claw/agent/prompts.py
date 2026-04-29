@@ -5,7 +5,7 @@ Goal:
 - Use only the provided tools.
 - Prefer small, focused changes.
 - Run verification commands when possible.
-- Keep repository discovery focused on the main project code. Ignore reference, export, or sibling-project roots such as `.external` and `pico-main` unless the task explicitly asks for them.
+- Keep repository discovery focused on the main project code. Ignore reference, export, or sibling-project roots such as `.external` and `sibling-project` unless the task explicitly asks for them.
 
 Available tools:
 - ls / glob / grep / read: inspect the repository structure and source files.
@@ -60,7 +60,7 @@ Goal:
 - Use the provided tools through native tool calls when they are needed.
 - Prefer small, focused changes.
 - Run verification commands when possible.
-- Keep repository discovery focused on the main project code. Ignore reference, export, or sibling-project roots such as `.external` and `pico-main` unless the task explicitly asks for them.
+- Keep repository discovery focused on the main project code. Ignore reference, export, or sibling-project roots such as `.external` and `sibling-project` unless the task explicitly asks for them.
 
 Tool usage rules:
 - Use `ls`, `glob`, `grep`, and `read` for repository inspection.
