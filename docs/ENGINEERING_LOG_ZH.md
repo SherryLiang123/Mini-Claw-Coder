@@ -16,10 +16,10 @@ Mini Claw-Coder 是一个面向代码任务的可验证 Coding Agent Runtime。
 核心目标：
 
 ```text
-Minimal Tools + Context Compiler + Patch Transaction + Runtime Trace + Eval Loop
+Execution Interface + Context Compiler + Safety Guardrails + Task Orchestration + Runtime Observability + Eval & Knowledge Loop
 ```
 
-项目不追求堆很多工具，而是研究如何用最小行动接口实现更可控的代码任务执行能力。
+项目不追求单纯堆工具，而是研究如何用稳定执行接口和完整运行时模块实现更可控的代码任务执行能力。
 
 ## Memory 系统设计
 
@@ -1199,7 +1199,7 @@ replay includes skill_patch_candidates
 关键取舍：
 - 这版 compact 是 deterministic 的，不依赖额外模型调用。先解决“长任务 trace 失控膨胀”的基础问题，再考虑模型主动触发 compact 或分层摘要树。
 - compact 只压较早步骤，最近几步仍保留完整 `Execution Trace`，避免把正在进行的推理上下文压得过早。
-- 我没有引入新的 compact tool，而是把 compact 作为 runtime 内部机制处理，保持最小工具核不变。
+- 我没有引入新的 compact tool，而是把 compact 作为 runtime 内部机制处理，保持底层执行接口稳定。
 
 新增测试：
 - `tests/test_compaction.py`
@@ -1533,7 +1533,7 @@ signal-aware route_reasons: continue_execution=4, initial_planning=5, pending_to
 
 > 我最开始先实现了 `workspace_copy`，因为它更容易验证任务隔离、diff 和 merge flow。后面我又把隔离层升级为双模式：非 git 项目继续使用 copy，真实 git 仓库可以用 `git-worktree` 创建任务级独立分支工作区。无论哪种模式，最终 diff 和 merge 都回到同一套 manifest conflict detection 和 PatchTransaction，避免隔离层绕过安全编辑机制。
 
-## 2026-04-19：最小多 Agent 编排闭环
+## 2026-04-19：基础多 Agent 编排闭环
 
 目标：把多 Agent 从 ACP-like 数据结构和任务隔离基础，推进到一个可运行的 `planner -> coder -> tester -> integrator` 顺序编排闭环。
 
@@ -1592,7 +1592,7 @@ signal-aware route_reasons: continue_execution=4, initial_planning=5, pending_to
 
 ## 2026-04-19：Orchestrator Coder Agent 接入
 
-目标：把最小多 Agent 编排里的 `coder` 阶段从“只消费已有 workspace 改动”推进到“可选在任务工作区运行 AgentLoop”。
+目标：把基础多 Agent 编排里的 `coder` 阶段从“只消费已有 workspace 改动”推进到“可选在任务工作区运行 AgentLoop”。
 
 这轮实现：
 - `orchestrator.py` 新增 `CoderRunResult` 和 `CoderRunner` 抽象。

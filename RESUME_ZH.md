@@ -6,15 +6,15 @@
 
 ## 一句话介绍
 
-设计并实现一个面向真实代码仓库的轻量级 Coding Agent Runtime，通过最小工具集、上下文管理、模型路由、记忆系统、Skill 机制、执行追踪和评测闭环，提升代码智能体在多步开发任务中的可控性、可观测性和可持续改进能力。
+设计并实现一个面向真实代码仓库的工程化 Coding Agent Runtime，围绕稳定执行接口、上下文编译、任务编排、安全编辑、记忆与技能、运行时观测和评测闭环，提升代码智能体在多步开发任务中的可控性、可观测性和可持续演进能力。
 
 ## 简历项目经历版本
 
 **Mini Claw-Coder：可验证的代码智能体运行时**  
 个人项目 / Python / LLM Agent / Coding Agent / Agent Runtime
 
-- 设计并实现轻量级 Coding Agent Runtime，支持从自然语言任务到代码搜索、文件修改、命令执行、测试验证和结果总结的基础闭环。
-- 采用最小工具集设计，将 `shell`、`apply_patch` 和只读的 `tool_output_lookup` 收敛为核心行动接口，将搜索、修改、验证和结果回查能力统一纳入 runtime，降低工具选择复杂度和安全审计成本。
+- 设计并实现工程化 Coding Agent Runtime，支持从自然语言任务到代码搜索、文件修改、命令执行、测试验证、任务编排和结果总结的完整执行闭环。
+- 以稳定执行接口为底层，将 `shell`、`apply_patch` 和只读的 `tool_output_lookup` 作为核心动作，并把搜索、修改、验证、结果回查、任务隔离和运行时策略统一纳入 runtime，降低工具选择复杂度并提升行为可审计性。
 - 新增 Tool Output Lookup Policy、Auto Focus Lookup Plan 与 intent-aware evidence refinement，在工具结果被截断后挂起 `pending lookup`，对重复的 shell inspection 做 runtime 级拦截，并为 agent 自动生成高信号 query / 行范围建议，支持按 `error/path/symbol/task` 意图和 `exclude_queries` 做多跳证据细化。
 - 将 evidence planner 的使用结果沉淀为 `evidence_summary` 和 `evidence_lookup_strategy` memory candidate，把一次成功任务中的证据搜索路径结构化记录到 trace 与候选记忆中；promote 后不直接污染 `project_memory.md`，而是按任务 query 检索并回流到 `ContextPacket` 的 `Evidence Strategies` section，支撑后续复盘与经验复用。
 - 实现 Agent Loop，抽象 observe-think-act 执行流程，支持模型输出结构化 action、工具执行、结果观测、失败重试和最终总结。
@@ -26,7 +26,7 @@
 - 实现基于 `SKILL.md` 的 Skill Contract 机制，支持 triggers、inputs、outputs、allowed_tools、forbidden_paths 和 verification 等 metadata，并根据任务 query 进行相关性召回，将可复用开发经验沉淀为有边界的能力模块。
 - 实现 Skill Guardrail，将 active skill 的 `allowed_tools` 和 `forbidden_paths` 接入 Agent Loop 工具调用前校验，使 Skill Contract 从声明式提示升级为 runtime 硬约束。
 - 基于成功任务中的 `evidence_summary` 和相关 skill 命中结果，生成 candidate-first 的 `skill_patch_candidate`，并在 promote 后落盘为 `.mini_claw/skill_patches/<artifact_id>.md` 审阅 artifact，再通过 `skill-patch-verify` 记录验证结果、通过 `skill-patch-preview` 生成 `SKILL.md` dry-run diff，把 `tool_output_lookup`、`focus='auto'` 和多跳 refine 流程沉淀为可审计、可验证、可预览的 skill 演进建议，而不是直接修改 `SKILL.md`。
-- 设计 ACP-like handoff 消息结构，并实现 `planner -> coder -> tester -> integrator` 最小多 Agent 编排闭环；`coder` 阶段可选在任务工作区内运行 AgentLoop，将任务选择、隔离执行、验证命令和安全 merge 串成可运行流程，并在 Replay 中统计 handoff、角色步骤、tester failure 和 integrator merge 指标。
+- 设计 ACP-like handoff 消息结构，并实现 `planner -> coder -> tester -> integrator` 基础多 Agent 编排闭环；`coder` 阶段可选在任务工作区内运行 AgentLoop，将任务选择、隔离执行、验证命令和安全 merge 串成可运行流程，并在 Replay 中统计 handoff、角色步骤、tester failure 和 integrator merge 指标。
 - 实现 JSONL Eval Runner 和离线 EvalBench，支持 scripted actions、临时工作区、verification commands、expected_success 和运行指标报告，为后续 prompt、skill、model routing 和工具策略优化提供评测基础。
 - 实现 Patch Transaction，将 `apply_patch` 升级为带文件快照、`sha256` 预条件、read-before-write guard、stale-read blocking、diff 摘要、verification 绑定、事务 journal 和失败回滚的安全编辑机制，降低基于过期内容误改代码的风险。
 - 实现 Failure Attribution，根据工具错误、模型输出异常、patch 冲突、未读先写、stale snapshot、命令超时、依赖缺失和测试失败等模式生成结构化失败报告，为 eval-driven self-improvement 提供可分析信号。
@@ -41,8 +41,8 @@
 
 **Mini Claw-Coder：可验证的代码智能体运行时**
 
-- 基于 Python 实现轻量级 Coding Agent Runtime，支持自然语言任务驱动的代码搜索、修改、命令执行、测试验证与结果总结。
-- 设计最小工具集架构，以 `shell`、`apply_patch` 和 `tool_output_lookup` 作为核心接口，降低 agent 工具选择复杂度，并提升行为可控性和安全审计能力。
+- 基于 Python 实现工程化 Coding Agent Runtime，支持自然语言任务驱动的代码搜索、修改、命令执行、测试验证、任务编排与结果总结。
+- 以稳定执行接口为底层，使用 `shell`、`apply_patch` 和 `tool_output_lookup` 承载核心动作，并通过 runtime 模块补齐上下文编译、安全编辑、知识复用和运行时观测能力。
 - 实现 ContextPacket、FileIndex 渐进式披露、模型路由、项目记忆、Skill Contract、执行追踪、Trace Replay 和离线 EvalBench，形成可观测、可评测、可迭代的 agent 执行闭环。
 - 设计 ACP-like handoff 协议和多角色路由策略，实现基于 TaskGraph 的 planner / coder / tester / integrator 顺序编排，为后续并行多 Agent 和模型级 handoff 预留扩展能力。
 - 实现事务化编辑、统一 Tool Output Protocol、Auto Focus / 多跳 evidence lookup、TaskGraph、任务级隔离工作区、安全 merge flow、Trace Replay 和失败归因能力，支持文件快照 hash、read-before-write、stale-read block、diff 摘要、verification 绑定、patch journal、失败回滚和结构化 FailureReport，解决 Coding Agent 修改不安全、任务难编排、运行难复盘、失败难分析等问题。
@@ -51,9 +51,9 @@
 
 我做了一个叫 Mini Claw-Coder 的项目，它不是简单的代码生成 Demo，而是一个面向代码任务的 Agent Runtime。我的目标是解决 Coding Agent 在真实工程落地时的几个问题：工具过多导致行为不可控、上下文越来越脏、模型成本不可控、代码修改缺少安全边界、失败后难以分析原因。
 
-所以我没有选择堆很多工具，而是把工具层压缩到 `shell`、`apply_patch` 和只读的 `tool_output_lookup` 这几个核心接口，再把复杂能力放到 runtime 层，包括 agent loop、上下文管理、模型路由、memory、skill、handoff、trace 和 eval。这样可以更清楚地观察 agent 每一步为什么行动、用了什么上下文、调用了什么工具、修改了哪些文件，以及失败后应该从哪里改进。
+所以我没有把系统做成单纯堆工具的形态，而是把底层动作稳定在 `shell`、`apply_patch` 和只读的 `tool_output_lookup` 这几个核心接口，再把复杂能力做进 runtime 层，包括 agent loop、上下文管理、模型路由、memory、skill、handoff、trace、eval、任务编排、隔离工作区和运行时诊断。这样可以更清楚地观察 agent 每一步为什么行动、用了什么上下文、调用了什么工具、修改了哪些文件，以及失败后应该从哪里改进。
 
-这个项目已经加入文件快照 hash、read-before-write guard、stale-read blocking、事务化 patch、统一 Tool Output Protocol、自动结果回查策略、Auto Focus 回查计划、intent-aware 多跳证据规划、evidence summary 反馈、candidate-first skill patch suggestions、skill patch artifact 审阅流、skill patch eval gate、skill patch dry-run preview、自动 context compact、signal-aware routing、diff 摘要、verification 绑定、rollback journal、trace replay、failure attribution、Skill Contract、任务级隔离工作区、基础安全 merge flow 和最小多 Agent 编排闭环。后续会继续补基于失败归因的 skill patch 验证闭环和更完整的 integrator 仲裁流程。我的重点不是复刻一个 Cursor，而是理解并实现 Coding Agent 的底层工程机制。
+这个项目已经加入文件快照 hash、read-before-write guard、stale-read blocking、事务化 patch、统一 Tool Output Protocol、自动结果回查策略、Auto Focus 回查计划、intent-aware 多跳证据规划、evidence summary 反馈、candidate-first skill patch suggestions、skill patch artifact 审阅流、skill patch eval gate、skill patch dry-run preview、自动 context compact、signal-aware routing、diff 摘要、verification 绑定、rollback journal、trace replay、failure attribution、Skill Contract、任务级隔离工作区、基础安全 merge flow、基础多 Agent 编排闭环，以及 dashboard / doctor / export / viewer 这一层运行时控制面。后续会继续补基于失败归因的 skill patch 验证闭环和更完整的 integrator 仲裁流程。我的重点不是复刻一个 Cursor，而是理解并实现 Coding Agent 的底层工程机制。
 
 ## 面试亮点回答
 
@@ -63,7 +63,7 @@
 
 ### 2. 为什么不直接做更多工具？
 
-我希望工具层更像操作系统的 syscall，数量少、边界清晰、容易审计。复杂能力不一定要通过更多工具实现，也可以通过 runtime policy、上下文编译、patch 事务和 eval 反馈来实现。这样 agent 的行动空间更可控，后续也更容易做安全策略。
+我希望底层执行接口更像操作系统的 syscall，边界清晰、容易审计。复杂能力不一定要通过不断增加工具来实现，也可以通过 runtime policy、上下文编译、patch 事务、任务编排和 eval 反馈来实现。这样 agent 的行动空间更可控，后续也更容易做安全策略。
 
 ### 3. 和普通 CLI Code Agent 有什么区别？
 

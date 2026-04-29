@@ -1,12 +1,12 @@
 # Mini Claw-Coder
 
-**Mini Claw-Coder 是一个面向代码任务的可验证 Coding Agent Runtime。**
+**Mini Claw-Coder 是一个面向真实代码仓库的工程化 Coding Agent Runtime。**
 
-它不是单纯的 ChatGPT Wrapper，也不是把一堆工具接到模型上的 CLI Demo。这个项目关注的是 Coding Agent 真正进入工程场景时最容易出问题的部分：上下文失控、工具面过大、模型成本不可控、代码修改不安全、失败原因不可追踪、经验无法复用。
+它已经不是早期“最小工具集实验”的形态，而是一个围绕代码任务执行打造的完整运行时平台：底层保留克制、稳定的执行接口，上层补齐了上下文编译、任务编排、隔离工作区、安全编辑、记忆与技能、运行时诊断、结构化导出和本地演示面板。
 
 项目核心目标：
 
-> 用尽量少的工具接口，构建一个可控、可观测、可评测、可持续改进的代码智能体运行时。
+> 把 Coding Agent 做成一套可运行、可观察、可验证、可复盘、可持续演进的运行时系统，而不只是一个工具封装层。
 
 ## 解决的问题
 
@@ -19,78 +19,85 @@
 - Agent 失败后只能看到日志，很难判断失败根因。
 - 成功经验无法沉淀，下次任务仍然从零开始。
 
-Mini Claw-Coder 将这些问题抽象为 **Agent Runtime 可靠性问题**，通过最小工具集、上下文编译、模型路由、记忆、技能、追踪和评测来解决。
+Mini Claw-Coder 将这些问题抽象为 **Agent Runtime 工程问题**，通过稳定执行接口、上下文编译、模型路由、知识与技能、安全编辑、任务编排、运行时观测和评测闭环来解决。
 
 ## 设计定位
 
 项目定位可以概括为：
 
 ```text
-Minimal Tools + Context Compiler + Patch Transaction + Runtime Trace + Eval Loop
+Execution Interface + Context Compiler + Safety Guardrails + Task Orchestration + Runtime Observability + Eval & Knowledge Loop
 ```
 
-与常见 CLI Code Agent 的区别：
+这里的重点不再是“工具最少”，而是：
 
-```text
-常见方案：Read / Edit / Write / Bash / Todo / Skills 等多个语义工具
-本项目：当前暴露 shell / apply_patch / tool_output_lookup，后续将 compact 作为上下文控制工具加入最小工具内核
+- 执行接口稳定，行为边界清楚。
+- 上下文构造可编译、可压缩、可追踪。
+- 代码修改有事务、安全前置条件和验证绑定。
+- 任务执行有编排、隔离、合并和诊断能力。
+- 成功经验与失败证据可以进入记忆、技能和评测闭环。
 
-常见方案：上下文分层与历史压缩
-本项目：把上下文构造成 ContextPacket，按任务阶段编译给模型
+## 核心技术地图
 
-常见方案：工具调用日志
-本项目：当前已实现 trace + replay + eval + failure attribution
-
-常见方案：一次性生成 patch
-本项目：已实现 snapshot / hash / diff summary / verification binding / rollback journal 的事务化编辑
-```
+| 领域 | 关键模块 | 作用 |
+| --- | --- | --- |
+| 执行接口 | `shell` / `apply_patch` / `tool_output_lookup` | 提供稳定、可审计的底层行动接口 |
+| 上下文系统 | `ContextPacket` / `ContextCompiler` / `FileIndex` / `Working Summary` | 编译任务上下文，控制预算与信息披露 |
+| 知识与技能 | `project_memory` / `evidence strategies` / `Skill Contract` / `Skill Guardrail` | 复用项目知识、经验和技能边界 |
+| 安全编辑 | `PatchTransaction` / read-before-write / stale-read block / verification binding | 降低误改代码和静默覆盖风险 |
+| 编排与隔离 | `TaskGraph` / `Todo` / handoff / task workspace / worktree / background jobs | 支撑多阶段任务执行与隔离 |
+| 观测与诊断 | trace / replay / dashboard / home / team / doctor / export / viewer | 把运行时状态变成可复盘、可展示的数据面 |
+| 评测与演进 | Eval Runner / EvalBench / Failure Attribution / memory candidates / route bench | 让策略优化有离线验证与证据闭环 |
 
 ## 当前架构
 
 ```text
-User Task
+User Task / Session / Team Command
    |
    v
-Agent Loop
+CLI & Runtime Surfaces
+   +-- run / chat / orchestrate
+   +-- dashboard / home / team / doctor
+   +-- export / viewer
    |
+   v
+Agent Runtime Core
+   +-- Agent Loop & Model Router
    +-- Context Manager
-   |      +-- task context
+   |      +-- task + session context
    |      +-- workspace snapshot
    |      +-- file index preview
    |      +-- project memory
-   |      +-- loaded skills
-   |      +-- execution trace
+   |      +-- selected skills
+   |      +-- execution trace / working summary
    |
-   +-- Model Router
-   |      +-- planner
-   |      +-- coder
-   |      +-- reviewer
-   |
-   +-- Memory Store
+   +-- Memory & Knowledge
    |      +-- project_memory.md
    |      +-- task_trace.jsonl
    |      +-- tool_outputs/
+   |      +-- memory candidates
+   |      +-- evidence strategies
    |
-   +-- Skill Loader
-   |      +-- SKILL.md
+   +-- Task Orchestration
+   |      +-- TaskGraph / Todo
+   |      +-- ACP-like handoff
+   |      +-- background jobs
+   |      +-- task workspace / worktree
+   |      +-- merge & verification flow
    |
-   +-- ACP-like Handoff
-   |      +-- planner -> coder
-   |      +-- coder -> reviewer
+   +-- Safety & Reliability
+   |      +-- PatchTransaction
+   |      +-- read-before-write
+   |      +-- stale-read blocking
+   |      +-- Failure Attribution
    |
-   +-- TaskGraph / Todo
-   |      +-- pending / in_progress / blocked / done / failed
-   |      +-- dependencies
-   |      +-- context refs
-   |      +-- verification command
-   |
-   +-- Task Workspace Manager
-   |      +-- workspace_copy isolation
-   |      +-- task -> workspace attachment
-   |      +-- diff summary
+   +-- Observability & Evaluation
+   |      +-- RuntimeEvent trace
+   |      +-- replay / doctor / dashboard
+   |      +-- Eval Runner / EvalBench
    |
    v
-Minimal Tools
+Stable Execution Interfaces
    +-- shell
    +-- apply_patch
    +-- tool_output_lookup
@@ -98,7 +105,7 @@ Minimal Tools
 
 ## 已实现能力
 
-### 1. Agent Loop
+### 1. 执行闭环
 
 核心循环位于 `mini_claw.agent`：
 
@@ -110,13 +117,13 @@ Minimal Tools
 - 记录 trace。
 - 根据结果继续迭代或输出最终总结。
 
-当前实现的是一个轻量 observe-think-act loop，方便后续接入更复杂的 planner、reviewer 和 tester。
+当前的 Agent Loop 已经不只是早期的 observe-think-act 雏形，而是会和模型路由、Skill Guardrail、任务图、任务工作区、trace、failure attribution 等运行时模块联动。
 
-### 2. 最小工具系统
+### 2. 执行接口与工具层
 
 工具层位于 `mini_claw.tools`。
 
-当前只暴露三个工具：
+底层稳定执行接口当前包括三个核心动作：
 
 ```text
 shell
@@ -147,7 +154,7 @@ tool_output_lookup
 - 支持 `intent='error' | 'path' | 'symbol' | 'task'` 和 `exclude_queries`，让 agent 对同一份长输出做多跳证据细化。
 - 让 agent 在不重跑外部命令的情况下二次读取长输出。
 
-这样的设计让工具接口更少、更稳定，也更容易做安全控制和行为审计。
+这并不意味着系统能力只有三个工具，而是把底层动作保持稳定，再把更复杂的编排、安全、知识和观测能力收敛到 runtime 层实现。这样既能控制行为边界，也不会让能力增长完全依赖工具数量膨胀。
 
 ### 2.1 统一 Tool Output Protocol
 
@@ -348,11 +355,11 @@ python -m mini_claw skills match "inspect this repository" --include-examples
 - 从失败归因中生成 skill patch。
 - 通过 eval 验证 skill 是否真的提升成功率。
 
-### 7. ACP-like Handoff
+### 7. 多角色协作协议
 
 协议模块位于 `mini_claw.protocol`。
 
-当前提供了轻量的 handoff 消息结构：
+当前提供了稳定的 handoff 消息结构：
 
 ```text
 Planner -> Coder
@@ -687,23 +694,36 @@ delete
 
 可以这样介绍这个项目：
 
-> 我做的是一个面向代码任务的 Agent Runtime，不只是 CLI Code Agent。项目的核心问题是：如何让 Coding Agent 在真实代码仓库里可控、可观测、可评测地完成任务。我没有选择堆很多外部工具，而是把行动接口收敛到 shell、apply_patch 和只读的 tool_output_lookup，再把复杂能力放到 runtime 层，包括上下文管理、模型路由、记忆系统、skill 系统、handoff、trace、eval、事务化编辑和失败归因。这样 agent 的每次上下文构造、工具调用、文件修改和失败原因都能被记录、分析和改进。
+> 我做的是一个面向真实代码仓库的 Coding Agent Runtime，不只是 CLI Code Agent 或工具封装层。这个项目早期是从克制的执行接口出发，但现在已经演进成一个完整运行时平台：底层有稳定的 `shell`、`apply_patch` 和 `tool_output_lookup` 接口，上层补齐了 ContextPacket、FileIndex、TaskGraph、任务隔离工作区、PatchTransaction、Failure Attribution、Skill Guardrail、memory candidate-first、dashboard / doctor / viewer 和离线 EvalBench。这样 agent 的上下文构造、工具结果、文件修改、任务状态、失败原因和改进证据都能被结构化记录和复盘。
 
 ## 与同类项目的差异
 
 | 维度 | 常见 CLI Code Agent | Mini Claw-Coder |
 | --- | --- | --- |
-| 工具系统 | 多个语义工具 | shell / apply_patch / tool_output_lookup 最小工具核 |
-| 上下文 | 分层拼接和压缩 | 面向 Context Compiler 演进 |
+| 系统定位 | 工具调用层或命令行代理 | 完整 Coding Agent Runtime 平台 |
+| 执行接口 | 多个语义工具 | 稳定执行接口 + 丰富 runtime 模块 |
+| 上下文 | 分层拼接和压缩 | ContextPacket / ContextCompiler / FileIndex / Working Summary |
 | 渐进披露 | 预览注入 + 按需读取 | FileIndex Preview + shell 按需读取 |
 | 编辑安全 | read-before-write | Patch Transaction：read snapshot / stale-read block / hash / diff / verify / journal / rollback |
 | 工具结果治理 | 长输出容易直接污染上下文 | 统一 output protocol + truncation + result lookup + lookup policy + evidence planner |
-| 日志 | runtime tracing | trace + replay + eval |
+| 观测与诊断 | runtime tracing | trace + replay + dashboard + doctor + export + viewer |
 | 失败处理 | 人工看日志 | Failure Attribution：失败根因、证据和建议动作 |
 | 技能系统 | 按需加载技能 | Skill Contract：triggers / inputs / outputs / tools / paths / verification |
-| 任务编排 | Todo / 任务图 | TaskGraph / Todo + task workspace attachment |
-| 隔离与合并 | worktree / patch flow | workspace_copy + manifest conflict detection + transactional merge |
-| 多 Agent | 角色协作 | ACP-like handoff + workspace_copy 隔离基础版 |
+| 任务编排 | Todo / 任务图 | TaskGraph / Todo + handoff + background jobs + verification binding |
+| 隔离与合并 | worktree / patch flow | workspace_copy / git-worktree + manifest conflict detection + transactional merge |
+| 知识演进 | prompt/skill 手工维护 | memory candidates + evidence strategies + skill patch artifact + eval gate |
+
+## 当前更准确的表述
+
+如果要一句话描述现在的系统，更准确的说法不是“最小工具集项目”，而是：
+
+> Mini Claw-Coder 是一个以稳定执行接口为底层、以编排、安全、知识、观测和评测为核心能力的 Coding Agent Runtime 平台。
+
+也就是说：
+
+- 底层执行接口仍然保持克制。
+- 但系统层已经覆盖上下文编译、记忆与技能、任务编排、隔离工作区、安全编辑、后台任务、运行时诊断和导出展示。
+- 项目的重点已经从“工具最少”演进为“运行时能力完整且证据可回放”。
 
 ## 路线图
 
@@ -891,9 +911,9 @@ python -m mini_claw workspace diff fileindex
 
 不管使用哪种隔离模式，`workspace create` 都会记录 base manifest，并把生成路径挂回 `TaskGraph`。后续 `workspace diff` / `workspace merge` 继续复用同一套 manifest conflict detection 和 `PatchTransaction`，避免任务隔离绕过安全编辑机制。
 
-## 最新增强：最小多 Agent 编排闭环
+## 最新增强：基础多 Agent 编排闭环
 
-现在 TaskGraph 不只是任务记录，也可以驱动一个最小可运行的多角色流程：
+现在 TaskGraph 不只是任务记录，也可以驱动一个基础可运行的多角色流程：
 
 ```text
 planner -> coder -> tester -> integrator
